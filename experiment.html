@@ -494,7 +494,9 @@ ${NAMES.COMPANY}`;
         prolificPid,
         timestamp: Date.now()
       };
+      console.log('Saving state:', SESSION_KEY, state);
       localStorage.setItem(SESSION_KEY, JSON.stringify(state));
+      console.log('State saved. Verification:', localStorage.getItem(SESSION_KEY) ? 'SUCCESS' : 'FAILED');
     }
     
     function loadState() {
