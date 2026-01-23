@@ -527,6 +527,7 @@ ${NAMES.COMPANY}`;
     let currentDocuments = {};
     let originalDocuments = {};  // Store original content for restore
     let openDocument = null;
+    let hasUnsavedChanges = false;
     let showEmailCompose = false;
     let emailDraft = { to: '', subject: '', body: '' };
     let chatMessages = [];
@@ -580,6 +581,7 @@ ${NAMES.COMPANY}`;
         originalDocuments[key] = currentDocuments[key].content;
       });
       openDocument = null;
+      hasUnsavedChanges = false;
       showEmailCompose = false;
       emailDraft = { to: '', subject: '', body: '' };
       chatMessages = [];
@@ -663,19 +665,20 @@ ${NAMES.COMPANY}`;
             </div>
             <div class="flex-1 overflow-y-auto p-3 bg-white">
               ${doc.editable ? `
-                <textarea id="docContent" class="w-full h-full font-mono text-xs leading-relaxed resize-none border-0 outline-none">${doc.content}</textarea>
+                <textarea id="docContent" class="w-full h-full font-mono text-xs leading-relaxed resize-none border-0 outline-none" oninput="markUnsaved()">${doc.content}</textarea>
               ` : `
                 <pre class="whitespace-pre-wrap font-mono text-xs leading-relaxed text-gray-700">${doc.content}</pre>
               `}
             </div>
             ${doc.editable ? `
-              <div class="border-t border-gray-200 p-2 bg-gray-50 flex gap-2">
+              <div class="border-t border-gray-200 p-2 bg-gray-50 flex gap-2 items-center">
                 <button onclick="saveDocument()" class="px-4 py-1.5 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors">
                   Save Changes
                 </button>
                 ${doc.modified ? `<button onclick="restoreDocument()" class="px-4 py-1.5 bg-gray-200 text-gray-700 rounded text-sm font-medium hover:bg-gray-300 transition-colors">
                   ↩ Restore Original
                 </button>` : ''}
+                <span id="unsavedIndicator" class="text-amber-600 text-xs ml-2" style="display: ${hasUnsavedChanges ? 'inline' : 'none'}">⚠️ Unsaved changes</span>
               </div>
             ` : ''}
           </div>
@@ -849,6 +852,12 @@ ${NAMES.COMPANY}`;
 
     // ===== GLOBAL FUNCTIONS =====
     window.openDoc = function(key) {
+      if (hasUnsavedChanges) {
+        if (!confirm('You have unsaved changes. Continue without saving?')) {
+          return;
+        }
+        hasUnsavedChanges = false;
+      }
       openDocument = key;
       showEmailCompose = false;
       logAction('open_document', { document: key });
@@ -856,8 +865,21 @@ ${NAMES.COMPANY}`;
     };
 
     window.closeDoc = function() {
+      if (hasUnsavedChanges) {
+        if (!confirm('You have unsaved changes. Continue without saving?')) {
+          return;
+        }
+        hasUnsavedChanges = false;
+      }
       openDocument = null;
       render();
+    };
+
+    window.markUnsaved = function() {
+      hasUnsavedChanges = true;
+      // Update indicator without full re-render
+      const indicator = document.getElementById('unsavedIndicator');
+      if (indicator) indicator.style.display = 'inline';
     };
 
     window.saveDocument = function() {
@@ -868,6 +890,7 @@ ${NAMES.COMPANY}`;
         
         currentDocuments[openDocument].content = newContent;
         currentDocuments[openDocument].modified = newContent !== originalDocuments[openDocument];
+        hasUnsavedChanges = false;
         
         logAction('save_document', { 
           document: openDocument,
@@ -884,6 +907,7 @@ ${NAMES.COMPANY}`;
       if (openDocument && currentDocuments[openDocument].editable) {
         currentDocuments[openDocument].content = originalDocuments[openDocument];
         currentDocuments[openDocument].modified = false;
+        hasUnsavedChanges = false;
         
         logAction('restore_document', { 
           document: openDocument
@@ -894,6 +918,12 @@ ${NAMES.COMPANY}`;
     };
 
     window.openEmailCompose = function() {
+      if (hasUnsavedChanges) {
+        if (!confirm('You have unsaved changes. Continue without saving?')) {
+          return;
+        }
+        hasUnsavedChanges = false;
+      }
       showEmailCompose = true;
       openDocument = null;
       logAction('open_email_compose', {});
@@ -901,6 +931,12 @@ ${NAMES.COMPANY}`;
     };
 
     window.replyToEmail = function(docKey) {
+      if (hasUnsavedChanges) {
+        if (!confirm('You have unsaved changes. Continue without saving?')) {
+          return;
+        }
+        hasUnsavedChanges = false;
+      }
       const doc = currentDocuments[docKey];
       const content = doc.content;
       
@@ -994,6 +1030,14 @@ ${bodyField.value}`,
     };
 
     window.completeTask = function() {
+      // Warn about unsaved changes
+      if (hasUnsavedChanges) {
+        if (!confirm('You have unsaved changes in the document. Click "Save Changes" to keep your edits, or "Restore Original" to discard them.\n\nContinue without saving?')) {
+          return;
+        }
+        hasUnsavedChanges = false;
+      }
+      
       const constructId = constructOrder[currentTaskIndex];
       
       // Collect task data
