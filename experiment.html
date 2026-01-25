@@ -762,13 +762,13 @@ ${NAMES.COMPANY}`;
               </p>
               <p class="text-sm text-blue-800 mb-2">For each task:</p>
               <ol class="text-sm text-blue-800 list-decimal list-inside space-y-1 mb-3">
-                <li>Review the documents and/or emails on the left</li>
+                <li><strong>Read ALL available documents and emails</strong> before taking action</li>
                 <li>Complete the task shown in the chat box with your supervisor</li>
                 <li>Send a message to your supervisor explaining what you did and why</li>
                 <li>Click "Complete Task" to continue</li>
               </ol>
-              <p class="text-sm text-blue-800">
-                The supervisor message can be brief — just explain your actions and reasoning.
+              <p class="text-xs text-blue-600 italic">
+                Note: Your actions are logged for research purposes, including which documents you open.
               </p>
             </div>
           </div>
@@ -1100,6 +1100,7 @@ ${bodyField.value}`,
           duration: Math.round((Date.now() - taskStartTime) / 1000),
           actions: currentTaskActions,
           chatMessages: chatMessages,
+          availableDocuments: Object.keys(currentDocuments).filter(k => currentDocuments[k].type !== 'sent_email'),
           documentsModified: Object.entries(currentDocuments)
             .filter(([k,v]) => v.modified)
             .map(([k,v]) => ({ name: k, finalContent: v.content })),
